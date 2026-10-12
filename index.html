@@ -15,11 +15,11 @@
         %22icons%22: []
     }">
 
-    <!-- 各問題ファイルを個別の変数名で静的読み込み（キャッシュ回避用のクエリ付き） -->
-    <script src="questions_r01_spring.js?v=20261012"></script>
-    <script src="questions_r01_autumn.js?v=20261012"></script>
-    <script src="questions_r02_spring.js?v=20261012"></script>
-    <script src="questions_r02_autumn.js?v=20261012"></script>
+    <!-- 各問題ファイルの静的読み込み -->
+    <script src="questions_r01_spring.js"></script>
+    <script src="questions_r01_autumn.js"></script>
+    <script src="questions_r02_spring.js"></script>
+    <script src="questions_r02_autumn.js"></script>
 
     <style>
         :root {
@@ -155,7 +155,12 @@
         config.count = countInput ? parseInt(countInput.value) : 5;
         config.showExplanation = explInput ? (explInput.value === 'yes') : true;
 
-        // 各JSファイルで定義された変数名をリスト化してプールする
+        // デバッグ用：各変数の状態をコンソールに出力
+        console.log("r01_spring:", typeof r01_spring_questions !== 'undefined' ? r01_spring_questions : "未定義");
+        console.log("r01_autumn:", typeof r01_autumn_questions !== 'undefined' ? r01_autumn_questions : "未定義");
+        console.log("r02_spring:", typeof r02_spring_questions !== 'undefined' ? r02_spring_questions : "未定義");
+        console.log("r02_autumn:", typeof r02_autumn_questions !== 'undefined' ? r02_autumn_questions : "未定義");
+
         const questionPools = [];
         
         if (typeof r01_spring_questions !== 'undefined' && Array.isArray(r01_spring_questions)) {
@@ -172,11 +177,10 @@
         }
 
         if (questionPools.length === 0) {
-            alert('問題データが読み込まれていません。変数名やファイル名を確認してください。');
+            alert('問題データが読み込まれていません。コンソールログを確認してください。');
             return;
         }
 
-        // 1. 読み込まれたプールからランダムに1つのファイルセットを抽選
         const randomSet = questionPools[Math.floor(Math.random() * questionPools.length)];
         currentFileName = randomSet.name;
         const allQuestions = randomSet.questions;
@@ -186,7 +190,6 @@
             return;
         }
 
-        // 2. 選択された中から指定された問題数分をランダムに抽出
         let shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
         currentQuestions = shuffled.slice(0, Math.min(config.count, shuffled.length));
 
@@ -279,15 +282,11 @@
         document.getElementById('setup-screen').classList.add('active');
     }
 
-    // オフライン対応（Service Workerのキャッシュを最新にリフレッシュ）
+    // Service Worker
     if ('serviceWorker' in navigator) {
         const swCode = `
-            self.addEventListener('install', e => {
-                self.skipWaiting();
-            });
-            self.addEventListener('activate', e => {
-                e.waitUntil(clients.claim());
-            });
+            self.addEventListener('install', e => { self.skipWaiting(); });
+            self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
             self.addEventListener('fetch', e => {
                 e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
             });
