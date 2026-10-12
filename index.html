@@ -15,50 +15,37 @@
         %22icons%22: []
     }">
 
-    <!-- 各問題ファイルを静的に読み込み、それぞれ固有の変数名に退避させるためのブリッジスクリプト -->
+    <!-- 各問題ファイルの静的読み込みとデータ退避 -->
     <script>
-        // 各ファイル読み込み時にグローバルな allQuestions を一時退避させる配列
         window.loadedQuestionSets = [];
     </script>
     
-    <!-- 1つ目のファイル読み込みと退避 -->
-    <script>
-        let allQuestions = [];
-    </script>
-    <script src="questions_r01_spring.js" onerror="console.error('Failed to load r01_spring')"></script>
+    <script>let allQuestions = [];</script>
+    <script src="questions_r01_spring.js"></script>
     <script>
         if (typeof allQuestions !== 'undefined' && Array.isArray(allQuestions) && allQuestions.length > 0) {
             window.loadedQuestionSets.push({ name: '令和元年 春期試験', questions: allQuestions });
         }
     </script>
 
-    <!-- 2つ目のファイル読み込みと退避 -->
-    <script>
-        allQuestions = [];
-    </script>
-    <script src="questions_r01_autumn.js" onerror="console.error('Failed to load r01_autumn')"></script>
+    <script>allQuestions = [];</script>
+    <script src="questions_r01_autumn.js"></script>
     <script>
         if (typeof allQuestions !== 'undefined' && Array.isArray(allQuestions) && allQuestions.length > 0) {
             window.loadedQuestionSets.push({ name: '令和元年 秋期試験', questions: allQuestions });
         }
     </script>
 
-    <!-- 3つ目のファイル読み込みと退避 -->
-    <script>
-        allQuestions = [];
-    </script>
-    <script src="questions_r02_spring.js" onerror="console.error('Failed to load r02_spring')"></script>
+    <script>allQuestions = [];</script>
+    <script src="questions_r02_spring.js"></script>
     <script>
         if (typeof allQuestions !== 'undefined' && Array.isArray(allQuestions) && allQuestions.length > 0) {
             window.loadedQuestionSets.push({ name: '令和2年 春期試験', questions: allQuestions });
         }
     </script>
 
-    <!-- 4つ目のファイル読み込みと退避 -->
-    <script>
-        allQuestions = [];
-    </script>
-    <script src="questions_r02_autumn.js" onerror="console.error('Failed to load r02_autumn')"></script>
+    <script>allQuestions = [];</script>
+    <script src="questions_r02_autumn.js"></script>
     <script>
         if (typeof allQuestions !== 'undefined' && Array.isArray(allQuestions) && allQuestions.length > 0) {
             window.loadedQuestionSets.push({ name: '令和2年 秋期試験', questions: allQuestions });
@@ -123,7 +110,7 @@
         <div class="form-group">
             <label>出題数を選択</label>
             <div class="radio-group" id="count-group">
-                <label class="radio-btn"><input type="radio" name="count" value="5" checked>5問</label>
+                <label class="radio-btn selected"><input type="radio" name="count" value="5" checked>5問</label>
                 <label class="radio-btn"><input type="radio" name="count" value="10">10問</label>
                 <label class="radio-btn"><input type="radio" name="count" value="15">15問</label>
             </div>
@@ -178,22 +165,27 @@
     let config = { count: 5, showExplanation: true };
     let currentFileName = '';
 
-    // ラジオボタンのデザイン連動
+    // ラジオボタンのクリック・選択連動処理を確実に適用
     document.querySelectorAll('.radio-group').forEach(group => {
         group.querySelectorAll('.radio-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 group.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
-                btn.querySelector('input').checked = true;
+                const radioInput = btn.querySelector('input');
+                if (radioInput) {
+                    radioInput.checked = true;
+                }
             });
         });
     });
 
     function startQuiz() {
-        config.count = parseInt(document.querySelector('input[name="count"]:checked').value);
-        config.showExplanation = document.querySelector('input[name="expl"]:checked').value === 'yes';
+        const countInput = document.querySelector('input[name="count"]:checked');
+        const explInput = document.querySelector('input[name="expl"]:checked');
+        
+        config.count = countInput ? parseInt(countInput.value) : 5;
+        config.showExplanation = explInput ? (explInput.value === 'yes') : true;
 
-        // 読み込まれているデータセットの存在チェック
         if (!window.loadedQuestionSets || window.loadedQuestionSets.length === 0) {
             alert('問題データの読み込みに失敗したか、データが空です。');
             return;
@@ -306,7 +298,7 @@
     if ('serviceWorker' in navigator) {
         const swCode = `
             self.addEventListener('install', e => {
-                e.waitUntil(caches.open('fe-quiz-v3').then(cache => cache.addAll(['./'])));
+                e.waitUntil(caches.open('fe-quiz-v4').then(cache => cache.addAll(['./'])));
             });
             self.addEventListener('fetch', e => {
                 e.respondWith(caches.match(e.request).then(response => response || fetch(e.request)));
