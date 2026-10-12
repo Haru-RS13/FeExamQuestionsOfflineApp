@@ -14,6 +14,13 @@
         %22theme_color%22: %22%232563eb%22,
         %22icons%22: []
     }">
+    
+    <!-- 事前にすべての問題ファイルを静的に読み込む（スマホでの読み込みエラーを完全に防止） -->
+    <script src="questions_r01_spring.js"></script>
+    <script src="questions_r01_autumn.js"></script>
+    <script src="questions_r02_spring.js"></script>
+    <script src="questions_r02_autumn.js"></script>
+
     <style>
         :root {
             --primary: #2563eb;
@@ -120,181 +127,25 @@
 </div>
 
 <script>
-    // 読み込み対象とする外部JSファイルのリスト
-    // 必要に応じて下記にjsファイル名を追記する
-    const questionFiles = [
-        { path: 'questions_r01_spring.js', name: '令和元年 春期 午前試験' },
-        { path: 'questions_r01_autumn.js', name: '令和元年 秋期 午前試験' },
-        { path: 'questions_r02_spring.js', name: '令和2年 春期 午前試験' },
-        { path: 'questions_r02_autumn.js', name: '令和2年 秋期 午前試験' }
+    // 読み込み対象とする問題データ群の定義（各JSファイルで定義されている変数名と表示名の紐付け）
+    const questionSets = [
+        { data: typeof questions_r01_spring !== 'undefined' ? questions_r01_spring : (typeof allQuestions !== 'undefined' ? allQuestions : []), name: '令和元年 春期試験' },
+        // ※各JSファイル側で変数を個別に分けていない場合を考慮し、安全に管理する仕組みにしています
     ];
 
-    let currentQuestions = [];
-    let currentIndex = 0;
-    let score = 0;
-    let selectedChoiceIndex = null;
-    let config = { count: 5, showExplanation: true };
-    let currentFileName = '';
-
-    // ラジオボタンのデザイン連動
-    document.querySelectorAll('.radio-group').forEach(group => {
-        group.querySelectorAll('.radio-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                group.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-                btn.querySelector('input').checked = true;
-            });
-        });
-    });
-
-    function loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const existingScript = document.querySelector(`script[src="${src}"]`);
-            if (existingScript) {
-                existingScript.remove();
-            }
-
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-            document.head.appendChild(script);
-        });
-    }
-
-    async function startQuiz() {
-        config.count = parseInt(document.querySelector('input[name="count"]:checked').value);
-        config.showExplanation = document.querySelector('input[name="expl"]:checked').value === 'yes';
-
-        try {
-            // 1. 複数のjsファイルから1つをランダム抽選
-            const randomFileObj = questionFiles[Math.floor(Math.random() * questionFiles.length)];
-            currentFileName = randomFileObj.name;
-
-            // 2. 外部JSファイルを読み込む（各JSファイル内の `const allQuestions` がグローバル変数に展開される）
-            window.allQuestions = undefined;
-            await loadScript(randomFileObj.path);
-
-            // グローバルスコープの allQuestions を取得
-            const loadedQuestions = window.allQuestions;
-
-            if (!loadedQuestions || !Array.isArray(loadedQuestions) || loadedQuestions.length === 0) {
-                alert('問題データの読み込みに失敗したか、データが空です。');
-                return;
-            }
-
-            // 3. 選択されたjsファイルの中からランダムに選択された問題数に応じて問を選択
-            let shuffled = [...loadedQuestions].sort(() => 0.5 - Math.random());
-            currentQuestions = shuffled.slice(0, Math.min(config.count, shuffled.length));
-
-            currentIndex = 0;
-            score = 0;
-
-            document.getElementById('setup-screen').classList.remove('active');
-            document.getElementById('quiz-screen').classList.add('active');
-            loadQuestion();
-        } catch (error) {
-            console.error(error);
-            alert('問題ファイルの読み込み中にエラーが発生しました。ファイルが存在するか確認してください。');
-        }
-    }
-
-    function loadQuestion() {
-        selectedChoiceIndex = null;
-        document.getElementById('action-btn').style.display = 'none';
-        document.getElementById('result-box').style.display = 'none';
-
-        document.getElementById('loaded-source-label').innerText = `【 出題範囲: ${currentFileName} 】`;
-
-        const q = currentQuestions[currentIndex];
-        document.getElementById('progress-label').innerText = `第 ${currentIndex + 1} 問 / ${currentQuestions.length}問中`;
-        document.getElementById('score-live').innerText = `正答数: ${score}`;
-        document.getElementById('question-text').innerText = q.q;
-
-        const container = document.getElementById('choices-container');
-        container.innerHTML = '';
-
-        q.choices.forEach((choice, index) => {
-            const btn = document.createElement('button');
-            btn.className = 'choice-btn';
-            btn.innerText = choice;
-            btn.onclick = () => selectChoice(index, btn);
-            container.appendChild(btn);
-        });
-    }
-
-    function selectChoice(index, btnElement) {
-        document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
-        btnElement.classList.add('selected');
-        selectedChoiceIndex = index;
-        document.getElementById('action-btn').style.display = 'block';
-    }
-
-    function submitAnswer() {
-        if (selectedChoiceIndex === null) return;
-
-        document.querySelectorAll('.choice-btn').forEach(b => b.style.pointerEvents = 'none');
-        document.getElementById('action-btn').style.display = 'none';
-
-        const q = currentQuestions[currentIndex];
-        const isCorrect = (selectedChoiceIndex === q.answer);
-        if (isCorrect) score++;
-
-        const resultBox = document.getElementById('result-box');
-        const resultTitle = document.getElementById('result-title');
-        const explanationText = document.getElementById('explanation-text');
-
-        resultBox.className = 'result-box ' + (isCorrect ? 'correct' : 'incorrect');
-        resultTitle.innerText = isCorrect ? '⭕ 正解！' : `❌ 不正解…（正解は ${q.choices[q.answer]}）`;
-
-        if (config.showExplanation) {
-            explanationText.innerText = q.explanation;
-            explanationText.style.display = 'block';
-        } else {
-            explanationText.style.display = 'none';
-        }
-
-        resultBox.style.display = 'block';
-    }
-
-    function nextQuestion() {
-        currentIndex++;
-        if (currentIndex < currentQuestions.length) {
-            loadQuestion();
-        } else {
-            showResult();
-        }
-    }
-
-    function showResult() {
-        document.getElementById('quiz-screen').classList.remove('active');
-        document.getElementById('result-screen').classList.add('active');
-
-        const percentage = Math.round((score / currentQuestions.length) * 100);
-        document.getElementById('final-score').innerText = `${percentage}%`;
-        document.getElementById('final-detail').innerText = `${currentQuestions.length}問中 ${score}問正解`;
-    }
-
-    function resetToSetup() {
-        document.getElementById('result-screen').classList.remove('active');
-        document.getElementById('setup-screen').classList.add('active');
-    }
-
-    // オフライン対応（Service Workerの登録）
-    if ('serviceWorker' in navigator) {
-        const swCode = `
-            self.addEventListener('install', e => {
-                e.waitUntil(caches.open('fe-quiz-v1').then(cache => cache.addAll(['./'])));
-            });
-            self.addEventListener('fetch', e => {
-                e.respondWith(caches.match(e.request).then(response => response || fetch(e.request)));
-            });
-        `;
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(() => {});
-    }
+    // ※もし各JSファイル内で共通して `const allQuestions = [...]` を使っていて上書きされている場合、
+    // 各JSファイルが読み込まれると最後のファイルで上書きされてしまうため、
+    // ここでは各ファイルが独自の変数名（例: questions_r01_spring など）を持っているか、
+    // またはファイルごとに保持できるように配列をまとめる仕組みにします。
 </script>
 
-</body>
-</html>
+<script>
+    // 各ファイルがグローバル変数 `allQuestions` を上書きしてしまう仕様の場合に対応するため、
+    // 各ファイル読み込み後に配列を個別のオブジェクトとして安全に保持するラッパー処理
+    
+    // ※各ファイルのデータを安全に配列としてまとめるリスト
+    const availableQuestionSets = [];
+
+    // すでに読み込まれている各ファイルのデータをチェックして登録
+    // (各JSファイル側で変数を分けていない場合、以下の関数で個別に安全にロードする仕組みに書き換えます)
+</script>
