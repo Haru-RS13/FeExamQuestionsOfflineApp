@@ -121,10 +121,12 @@
 
 <script>
     // 読み込み対象とする外部JSファイルのリスト
+    // 必要に応じて下記にjsファイル名を追記する
     const questionFiles = [
-        { path: 'questions_r1_spring_am.js', name: '令和元年春期 午前試験' },
-        { path: 'questions_r1_autumn_am.js', name: '令和元年秋期 午前試験' },
-        // 必要に応じてファイルを追加できます
+        { path: 'questions_r01_spring.js', name: '令和元年 春期 午前試験' },
+        { path: 'questions_r01_autumn.js', name: '令和元年 秋期 午前試験' },
+        { path: 'questions_r02_spring.js', name: '令和2年 春期 午前試験' },
+        { path: 'questions_r02_autumn.js', name: '令和2年 秋期 午前試験' },
     ];
 
     let currentQuestions = [];
