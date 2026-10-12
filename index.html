@@ -59,6 +59,7 @@
         /* 完了画面 */
         .score-display { text-align: center; font-size: 2rem; font-weight: bold; color: var(--primary); margin: 20px 0; }
         .score-sub { text-align: center; color: #64748b; margin-bottom: 24px; }
+        .loaded-source { text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -90,6 +91,7 @@
 
     <!-- 2. 問題画面 -->
     <div id="quiz-screen" class="screen">
+        <div class="loaded-source" id="loaded-source-label"></div>
         <div class="quiz-header">
             <span id="progress-label">第 1 問 / 5問中</span>
             <span id="score-live">正答数: 0</span>
@@ -118,119 +120,11 @@
 </div>
 
 <script>
-    // サンプル問題データ（ここに過去問データを自由に追加・差し替えできます）
-    const allQuestions = [
-        {
-            q: "ITILファンデーションにおいて、インシデント管理の主たる目的はどれか。",
-            choices: [
-                "ア. 障害の原因を根本的に究明し、恒久対策を講じること",
-                "イ. サービスの中断を可能な限り早く正常な状態に回復させること",
-                "ウ. 将来発生するリスクを予測し、事前に対策を計画すること",
-                "エ. システムの変更に伴うリスクを評価し、承認を与えること"
-            ],
-            answer: 1, // 0-indexed (イ)
-            explanation: "インシデント管理の主たる目的は、ビジネスへの影響を最小限に抑え、サービスを迅速に復旧させることです（根本原因の究明は「問題管理」の役割です）。"
-        },
-        {
-            q: "TCP/IPネットワークにおいて、IPアドレスからMACアドレスを動的に取得するプロトコルはどれか。",
-            choices: [
-                "ア. ARP",
-                "イ. DHCP",
-                "ウ. ICMP",
-                "エ. DNS"
-            ],
-            answer: 0, // 0-indexed (ア)
-            explanation: "ARP (Address Resolution Protocol) は、IPアドレスからMACアドレスを対応づけて取得するためのプロトコルです。"
-        },
-        {
-            q: "アジャイル開発手法の一つであるスクラムにおいて、プロダクトの改善に向けてプロセスを振り返るミーティングはどれか。",
-            choices: [
-                "ア. スプリント計画ミーティング",
-                "イ. デイリースクラム",
-                "ウ. スプリントレビュー",
-                "エ. スプリントレトロスペクティブ"
-            ],
-            answer: 3, // 0-indexed (エ)
-            explanation: "スプリントレトロスペクティブ（スプリント振り返り）は、チームの働き方やプロセスを検証し、改善策を話し合う会議です。"
-        },
-        {
-            q: "公開鍵暗号方式で用いられる説明として、適切なものはどれか。",
-            choices: [
-                "ア. 暗号化と復号に同一の鍵を使用する。",
-                "イ. 暗号化鍵は非公開にし、復号鍵は誰でも自由に使えるように公開する。",
-                "ウ. 暗号化鍵は公開し、復号鍵は受信者が厳重に秘密に保持する。",
-                "エ. 通信を行う当事者間で、事前に安全な経路で共通の鍵を共有しておく必要がある。"
-            ],
-            answer: 2, // 0-indexed (ウ)
-            explanation: "公開鍵暗号方式では、暗号化鍵を公開し（公開鍵）、復号するための秘密鍵は受信者が厳重に管理します。"
-        },
-        {
-            q: "プロジェクトマネジメントにおける「クリティカルパス」に関する記述として、適切なものはどれか。",
-            choices: [
-                "ア. プロジェクトの中で最もコストがかかる作業の経路",
-                "イ. 最も所要日数が長い、プロジェクト全体の完了遅延に直結する経路",
-                "ウ. どの作業を遅らせてもプロジェクト全体に影響を与えない経路",
-                "エ. リソースを最も多く投入しなければならない並行作業の経路"
-            ],
-            answer: 1, // 0-indexed (イ)
-            explanation: "クリティカルパスは、プロジェクト日程全体の最長経路であり、この経路上にあるタスクが遅延すると全体の日程が遅れます。"
-        },
-        // 必要に応じて問題数を追加できます（例として5問以上用意）
-        {
-            q: "関係データベースの正規化において、第1正規形の要件として適切なものはどれか。",
-            choices: [
-                "ア. すべての属性の値が原子値（分割不可能な値）であること。",
-                "イ. 主キーに完全関数従属していない非主キー属性を排除すること。",
-                "ウ. 推移的関数従属を排除すること。",
-                "エ. 結合従属以外の多値従属を排除すること。"
-            ],
-            answer: 0, // 0-indexed (ア)
-            explanation: "第1正規形は、表のすべてのセル（属性）がこれ以上分割できない単一の値（原子値）で構成されている状態を指します。"
-        },
-        {
-            q: "表計算ソフトのVLOOKUP関数において、検索の型に「FALSE」または「0」を指定した場合の動作はどれか。",
-            choices: [
-                "ア. 検索値と完全に一致する値だけを検索し、見つからない場合はエラーを返す。",
-                "イ. 検索値未満の最大値を検索する。",
-                "ウ. 検索値より大きい最小値を検索する。",
-                "エ. あいまい一致で最も類似している行を返す。"
-            ],
-            answer: 0, // 0-indexed (ア)
-            explanation: "検索の型にFALSE（または0）を指定すると完全一致検索になり、一致するデータがない場合は #N/A エラーになります。"
-        },
-        {
-            q: "CPUの性能指標であるMIPSが表すものはどれか。",
-            choices: [
-                "ア. 1秒間に実行できる浮動小数点演算の回数",
-                "イ. 1秒間に実行できる命令の百万回数",
-                "ウ. メモリのデータ転送速度の最大値",
-                "エ. 消費電力あたりの演算処理効率"
-            ],
-            answer: 1, // 0-indexed (イ)
-            explanation: "MIPS (Million Instructions Per Second) は、1秒間に実行できる命令数を百万単位で表した指標です。"
-        },
-        {
-            q: "情報セキュリティにおける「CIA」の構成要素に含まれないものはどれか。",
-            choices: [
-                "ア. 機密性 (Confidentiality)",
-                "イ. 完全性 (Integrity)",
-                "ウ. 可用性 (Availability)",
-                "エ. 経済性 (Economy)"
-            ],
-            answer: 3, // 0-indexed (エ)
-            explanation: "情報セキュリティの3大要素（CIA）は、機密性・完全性・可用性であり、経済性は含まれません。"
-        },
-        {
-            q: "デザインパターンにおける「Singletonパターン」の目的はどれか。",
-            choices: [
-                "ア. オブジェクトの生成処理をサブクラスに委譲すること",
-                "イ. クラスのインスタンスが確実に1つしか生成されないようにすること",
-                "ウ. 既存のクラスのインターフェースを別のインターフェースに変換すること",
-                "エ. 複雑なオブジェクト構造を再帰的に構築すること"
-            ],
-            answer: 1, // 0-indexed (イ)
-            explanation: "Singletonパターンは、アプリケーション全体でそのクラスのインスタンスが唯一であることを保証するデザインパターンです。"
-        }
+    // 読み込み対象とする外部JSファイルのリスト
+    const questionFiles = [
+        { path: 'questions_r1_spring_am.js', name: '令和元年春期 午前試験' },
+        { path: 'questions_r1_autumn_am.js', name: '令和元年秋期 午前試験' },
+        // 必要に応じてファイルを追加できます
     ];
 
     let currentQuestions = [];
@@ -238,6 +132,7 @@
     let score = 0;
     let selectedChoiceIndex = null;
     let config = { count: 5, showExplanation: true };
+    let currentFileName = '';
 
     // ラジオボタンのデザイン連動
     document.querySelectorAll('.radio-group').forEach(group => {
@@ -250,26 +145,64 @@
         });
     });
 
-    function startQuiz() {
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const existingScript = document.querySelector(`script[src="${src}"]`);
+            if (existingScript) {
+                existingScript.remove();
+            }
+
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    async function startQuiz() {
         config.count = parseInt(document.querySelector('input[name="count"]:checked').value);
         config.showExplanation = document.querySelector('input[name="expl"]:checked').value === 'yes';
 
-        // 問題をランダムにシャッフルして指定枚数抽出
-        let shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-        currentQuestions = shuffled.slice(0, Math.min(config.count, shuffled.length));
+        try {
+            // 1. 複数のjsファイルから1つをランダム抽選
+            const randomFileObj = questionFiles[Math.floor(Math.random() * questionFiles.length)];
+            currentFileName = randomFileObj.name;
 
-        currentIndex = 0;
-        score = 0;
+            // 2. 外部JSファイルを読み込む（各JSファイル内の `const allQuestions` がグローバル変数に展開される）
+            window.allQuestions = undefined;
+            await loadScript(randomFileObj.path);
 
-        document.getElementById('setup-screen').classList.remove('active');
-        document.getElementById('quiz-screen').classList.add('active');
-        loadQuestion();
+            // グローバルスコープの allQuestions を取得
+            const loadedQuestions = window.allQuestions;
+
+            if (!loadedQuestions || !Array.isArray(loadedQuestions) || loadedQuestions.length === 0) {
+                alert('問題データの読み込みに失敗したか、データが空です。');
+                return;
+            }
+
+            // 3. 選択されたjsファイルの中からランダムに選択された問題数に応じて問を選択
+            let shuffled = [...loadedQuestions].sort(() => 0.5 - Math.random());
+            currentQuestions = shuffled.slice(0, Math.min(config.count, shuffled.length));
+
+            currentIndex = 0;
+            score = 0;
+
+            document.getElementById('setup-screen').classList.remove('active');
+            document.getElementById('quiz-screen').classList.add('active');
+            loadQuestion();
+        } catch (error) {
+            console.error(error);
+            alert('問題ファイルの読み込み中にエラーが発生しました。ファイルが存在するか確認してください。');
+        }
     }
 
     function loadQuestion() {
         selectedChoiceIndex = null;
         document.getElementById('action-btn').style.display = 'none';
         document.getElementById('result-box').style.display = 'none';
+
+        document.getElementById('loaded-source-label').innerText = `【 出題範囲: ${currentFileName} 】`;
 
         const q = currentQuestions[currentIndex];
         document.getElementById('progress-label').innerText = `第 ${currentIndex + 1} 問 / ${currentQuestions.length}問中`;
@@ -298,7 +231,6 @@
     function submitAnswer() {
         if (selectedChoiceIndex === null) return;
 
-        // 選択肢のボタンを無効化
         document.querySelectorAll('.choice-btn').forEach(b => b.style.pointerEvents = 'none');
         document.getElementById('action-btn').style.display = 'none';
 
